@@ -4,15 +4,13 @@ import com.lwj.springmvc.dao.HistoryGradeDao;
 import com.lwj.springmvc.dao.MathGradeDao;
 import com.lwj.springmvc.dao.ScienceGradeDao;
 import com.lwj.springmvc.dao.StudentDao;
-import com.lwj.springmvc.models.CollegeStudent;
-import com.lwj.springmvc.models.HistoryGrade;
-import com.lwj.springmvc.models.MathGrade;
-import com.lwj.springmvc.models.ScienceGrade;
+import com.lwj.springmvc.models.*;
 import com.lwj.springmvc.service.StudentAndGradeService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
@@ -23,7 +21,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-@TestPropertySource("/application.properties")
+@TestPropertySource("/application-test.properties")
 @SpringBootTest
 public class StudentAndGradeServiceTest {
 
@@ -45,19 +43,36 @@ public class StudentAndGradeServiceTest {
     @Autowired
     private HistoryGradeDao historyGradeDao;
 
+    @Value("${sql.scripts.create.student}")
+    private String sqlAddStudent;
+
+    @Value("${sql.scripts.create.math,grade}")
+    private String sqlAddMathGrade;
+
+    @Value("${sql.scripts.create.science,grade}")
+    private String sqlAddScienceGrade;
+
+    @Value("${sql.scripts.create.history,grade}")
+    private String sqlAddHistoryGrade;
+
+    @Value("${sql.scripts.create.delete.student}")
+    private String sqlDeleteStudent;
+
+    @Value("${sql.scripts.create.delete.math,grade}")
+    private String sqlDeleteMathGrade;
+
+    @Value("${sql.scripts.create.delete.science,grade}")
+    private String sqlDeleteScienceGrade;
+
+    @Value("${sql.scripts.create.delete.history,grade}")
+    private String sqlDeleteHistoryGrade;
+
     @BeforeEach
     public void setUpDatabase() {
-        jdbcTemplate.execute("insert into student(id, firstname, lastname, email_Address) " +
-                "values (1, 'Eric', 'Roby', 'lwj.com')");
-
-        jdbcTemplate.execute("insert into math_grade(id, student_id, grade) " +
-                "values (1, 1, 100.0)");
-
-        jdbcTemplate.execute("insert into science_grade(id, student_id, grade) " +
-                "values (1, 1, 100.0)");
-
-        jdbcTemplate.execute("insert into history_grade(id, student_id, grade) " +
-                "values (1, 1, 100.0)");
+        jdbcTemplate.execute(sqlAddStudent);
+        jdbcTemplate.execute(sqlAddMathGrade);
+        jdbcTemplate.execute(sqlAddScienceGrade);
+        jdbcTemplate.execute(sqlAddHistoryGrade);
     }
 
     @Test
@@ -133,9 +148,9 @@ public class StudentAndGradeServiceTest {
         Iterable<HistoryGrade> historyGrades = historyGradeDao.findGradesByStudentId(1);
 
         //Verify there is grades
-        assertTrue(((Collection<MathGrade>)mathGrades).size() == 2, "Student has math grades");
-        assertTrue(((Collection<ScienceGrade>)scienceGrades).size() == 2, "Student has science grades");
-        assertTrue(((Collection<HistoryGrade>)historyGrades).size() == 2, "Student has history grades");
+        assertTrue(((Collection<MathGrade>) mathGrades).size() == 2, "Student has math grades");
+        assertTrue(((Collection<ScienceGrade>) scienceGrades).size() == 2, "Student has science grades");
+        assertTrue(((Collection<HistoryGrade>) historyGrades).size() == 2, "Student has history grades");
 
     }
 
@@ -149,24 +164,47 @@ public class StudentAndGradeServiceTest {
     }
 
     @Test
-    public void deleteGradeService(){
+    public void deleteGradeService() {
         assertEquals(1, studentservice.deleteGrade(1, "math"), "Return student id after delete");
         assertEquals(1, studentservice.deleteGrade(1, "science"), "Return student id after delete");
         assertEquals(1, studentservice.deleteGrade(1, "history"), "Return student id after delete");
     }
 
     @Test
-    public void deleteGradeServiceReturnStudentIdOfZero(){
+    public void deleteGradeServiceReturnStudentIdOfZero() {
         assertEquals(0, studentservice.deleteGrade(0, "science"), "No student should have 0 id");
         assertEquals(0, studentservice.deleteGrade(1, "English"), "No student should have English class");
 
     }
-    
+
+    @Test
+    public void studentInformation() {
+
+        GradebookCollegeStudent gradebookCollegeStudent = studentservice.studentInformation(1);
+
+        assertNotNull(gradebookCollegeStudent);
+        assertEquals(1, gradebookCollegeStudent.getId());
+        assertEquals("Eric", gradebookCollegeStudent.getFirstname());
+        assertEquals("Roby", gradebookCollegeStudent.getLastname());
+        assertEquals("lwj.com", gradebookCollegeStudent.getEmailAddress());
+        assertTrue(gradebookCollegeStudent.getStudentGrades().getMathGradeResults().size() == 1);
+        assertTrue(gradebookCollegeStudent.getStudentGrades().getScienceGradeResults().size() == 1);
+        assertTrue(gradebookCollegeStudent.getStudentGrades().getHistoryGradeResults().size() == 1);
+    }
+
+    @Test
+    public void studentInformationServiceReturnNull() {
+
+        GradebookCollegeStudent gradebookCollegeStudent = studentservice.studentInformation(0);
+
+        assertNull(gradebookCollegeStudent);
+    }
+
     @AfterEach
     public void setUpAfterTransaction() {
-        jdbcTemplate.execute("DELETE FROM student");
-        jdbcTemplate.execute("DELETE FROM math_grade");
-        jdbcTemplate.execute("DELETE FROM science_grade");
-        jdbcTemplate.execute("DELETE FROM history_grade");
+        jdbcTemplate.execute(sqlDeleteStudent);
+        jdbcTemplate.execute(sqlDeleteMathGrade);
+        jdbcTemplate.execute(sqlDeleteScienceGrade);
+        jdbcTemplate.execute(sqlDeleteHistoryGrade);
     }
 }

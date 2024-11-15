@@ -3,6 +3,7 @@ package com.lwj.springmvc.controller;
 
 import com.lwj.springmvc.models.CollegeStudent;
 import com.lwj.springmvc.models.Gradebook;
+import com.lwj.springmvc.models.GradebookCollegeStudent;
 import com.lwj.springmvc.service.StudentAndGradeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -15,20 +16,27 @@ public class GradebookController {
     @Autowired
     private Gradebook gradebook;
 
-	@Autowired
-	private StudentAndGradeService studentAndGradeService;
+    @Autowired
+    private StudentAndGradeService studentAndGradeService;
 
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public String getStudents(Model m) {
-		Iterable<CollegeStudent> collegeStudents = studentAndGradeService.getGradebook();
-		m.addAttribute("students", collegeStudents);
-		return "index";
+        Iterable<CollegeStudent> collegeStudents = studentAndGradeService.getGradebook();
+        m.addAttribute("students", collegeStudents);
+        return "index";
     }
 
 
     @GetMapping("/studentInformation/{id}")
     public String studentInformation(@PathVariable int id, Model m) {
+
+        if (!studentAndGradeService.checkIfStudentIsNull(id)) {
+            return "error";
+        }
+
+        studentAndGradeService.configureStudentInformationModel(id, m);
+
         return "studentInformation";
     }
 
@@ -43,7 +51,7 @@ public class GradebookController {
     @GetMapping("/delete/student/{id}")
     public String deleteStudent(@PathVariable int id, Model m) {
 
-        if(!studentAndGradeService.checkIfStudentIsNull(id)){
+        if (!studentAndGradeService.checkIfStudentIsNull(id)) {
             return "error";
         }
 
@@ -51,6 +59,43 @@ public class GradebookController {
         Iterable<CollegeStudent> collegeStudents = studentAndGradeService.getGradebook();
         m.addAttribute("students", collegeStudents);
         return "index";
+    }
+
+    @PostMapping(value = "/grades")
+    public String creatGrades(@RequestParam("grade") double grade, @RequestParam("gradeType") String gradeType, @RequestParam("studentId") int studentId, Model m) {
+        if (!studentAndGradeService.checkIfStudentIsNull(studentId)) {
+            return "error";
+        }
+
+        boolean success = studentAndGradeService.creatGrade(grade, studentId, gradeType);
+
+        if(!success){
+            return "error";
+        }
+
+        studentAndGradeService.configureStudentInformationModel(studentId, m);
+
+
+        return "studentInformation";
+    }
+
+    @GetMapping("/grades/{id}/{gradeType}")
+    public String deleteGrades(@PathVariable int id, @PathVariable String gradeType, Model m) {
+        if (!studentAndGradeService.checkIfStudentIsNull(id)) {
+            return "error";
+        }
+
+        int studentId = studentAndGradeService.deleteGrade(id, gradeType);
+
+        if(studentId ==0){
+            return "error";
+        }
+
+        studentAndGradeService.configureStudentInformationModel(studentId, m);
+
+        return "studentInformation";
+
+
     }
 
 }

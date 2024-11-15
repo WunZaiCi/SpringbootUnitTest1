@@ -8,4 +8,6 @@ public interface ScienceGradeDao extends CrudRepository<ScienceGrade, Integer> {
 
     Iterable<ScienceGrade> findGradesByStudentId(int studentId);
 
+    void deleteByStudentId(int id);
+
 }
